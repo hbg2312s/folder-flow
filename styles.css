@@ -1,0 +1,176 @@
+/* Folder Flow — 底部薄条 + 文件夹面板 */
+
+.folder-flow-bar {
+	position: fixed;
+	left: 50%;
+	bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+	transform: translate(-50%, 8px);
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	min-width: 240px;
+	max-width: min(440px, calc(100vw - 32px));
+	height: 44px;
+	padding: 0 6px;
+	border-radius: 14px;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+	z-index: 32;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 120ms ease, transform 120ms ease;
+	touch-action: pan-y;
+}
+
+.folder-flow-bar.is-visible {
+	opacity: 1;
+	pointer-events: auto;
+	transform: translate(-50%, 0);
+}
+
+.folder-flow-bar .ff-nav {
+	flex: 0 0 36px;
+	height: 32px;
+	border: none;
+	border-radius: 9px;
+	background: transparent;
+	color: var(--text-muted);
+	font-size: 18px;
+	line-height: 1;
+	cursor: pointer;
+	box-shadow: none;
+}
+
+.folder-flow-bar .ff-nav:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.folder-flow-bar .ff-label {
+	flex: 1 1 auto;
+	min-width: 0;
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+	height: 32px;
+	padding: 0 8px;
+	border: none;
+	background: transparent;
+	box-shadow: none;
+	color: var(--text-normal);
+	cursor: pointer;
+	text-align: left;
+}
+
+.folder-flow-bar .ff-name {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 13px;
+}
+
+.folder-flow-bar .ff-pos {
+	flex: 0 0 auto;
+	font-size: 11px;
+	color: var(--text-faint);
+	font-variant-numeric: tabular-nums;
+}
+
+.folder-flow-bar.is-single .ff-pos {
+	display: none;
+}
+
+/* ---------- 底部面板 ---------- */
+
+.modal-container.ff-sheet-container {
+	align-items: flex-end;
+}
+
+.modal-container.ff-sheet-container .modal.ff-sheet {
+	width: 100%;
+	max-width: 640px;
+	height: auto;
+	max-height: 72vh;
+	margin: 0 auto;
+	border-radius: 16px 16px 0 0;
+	padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.ff-sheet .ff-sheet-head {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 4px;
+}
+
+.ff-sheet .ff-sheet-count {
+	font-size: 12px;
+	color: var(--text-muted);
+}
+
+.ff-sheet .ff-sheet-toggle {
+	margin: 4px 0 8px;
+	border-top: none;
+}
+
+.ff-sheet .ff-sheet-toggle .setting-item {
+	padding: 6px 0;
+	border-top: none;
+}
+
+.ff-sheet .ff-search {
+	width: 100%;
+	margin-bottom: 8px;
+}
+
+.ff-sheet .ff-list {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	overflow-y: auto;
+	max-height: calc(72vh - 160px);
+}
+
+.ff-sheet .ff-row {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+	min-height: 40px;
+	padding: 8px 10px;
+	border-radius: 9px;
+	cursor: pointer;
+}
+
+.ff-sheet .ff-row:hover {
+	background: var(--background-modifier-hover);
+}
+
+.ff-sheet .ff-row.is-current {
+	background: var(--background-modifier-active-hover, var(--background-modifier-hover));
+	font-weight: 600;
+}
+
+.ff-sheet .ff-row-name {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 14px;
+}
+
+.ff-sheet .ff-row-dir {
+	flex: 0 0 auto;
+	font-size: 11px;
+	color: var(--text-faint);
+}
+
+.ff-sheet .ff-empty {
+	padding: 16px 10px;
+	color: var(--text-muted);
+	font-size: 13px;
+}

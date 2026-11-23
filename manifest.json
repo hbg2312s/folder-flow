@@ -1,0 +1,9 @@
+{
+  "id": "folder-flow",
+  "name": "Folder Flow",
+  "version": "0.1.0",
+  "minAppVersion": "1.13.0",
+  "description": "Continuous reading inside the current folder: bottom bar pagination, folder sheet, and per-note scroll memory.",
+  "author": "PZQ",
+  "isDesktopOnly": false
+}
