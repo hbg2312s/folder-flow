@@ -1,3 +1,9 @@
+# 0.1.1
+
+- The bottom bar no longer disappears in editing mode on mobile. It is now hidden only while the on-screen keyboard is open, so it stays available when the keyboard is closed and still keeps the mobile toolbar clear.
+- Migrates the old `hideWhenEditing` setting to `hideWhenKeyboard`.
+- Adds tests for the keyboard detection ratio.
+
 # 0.1.0
 
 - Bottom bar with previous/next, position label (`3/12`), tap-to-open folder sheet.

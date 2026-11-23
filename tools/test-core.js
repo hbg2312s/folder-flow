@@ -18,7 +18,7 @@ const sandbox = { module: { exports: {} }, console };
 vm.createContext(sandbox);
 vm.runInContext(
 	coreSource +
-		'\nmodule.exports = { normOrder, cmpName, sorterFor, sortFiles, collectNotes, indexPath, step, positionLabel, ORDER_KEYS };',
+		'\nmodule.exports = { normOrder, cmpName, sorterFor, sortFiles, collectNotes, indexPath, step, positionLabel, keyboardOpen, ORDER_KEYS };',
 	sandbox,
 );
 const core = sandbox.module.exports;
@@ -131,6 +131,13 @@ check('空列表', core.step([], 'F/a.md', 1, false).target, null);
 check('位置 1/2', core.positionLabel(list, 'F/a.md'), '1/2');
 check('位置 2/2', core.positionLabel(list, 'F/b.md'), '2/2');
 check('位置未知', core.positionLabel(list, 'F/none.md'), '');
+
+// 10. 键盘检测：视口明显缩小才算弹出，取不到数据不隐藏
+check('键盘收起', core.keyboardOpen(1000, 1000), false);
+check('键盘收起（轻微抖动）', core.keyboardOpen(950, 1000), false);
+check('键盘弹出', core.keyboardOpen(560, 1000), true);
+check('无 visualViewport', core.keyboardOpen(undefined, 1000), false);
+check('高度为 0 不误判', core.keyboardOpen(0, 1000), false);
 
 console.log('通过 ' + pass + ' 项');
 if (failures.length) {

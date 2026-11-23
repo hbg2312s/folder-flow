@@ -27,7 +27,7 @@ All commands can be assigned to hotkeys, and on mobile they can be placed on the
 ## Settings
 
 - Show bottom bar on desktop / on mobile.
-- Hide the bar while editing on mobile (keeps the mobile toolbar clear).
+- Hide the bar while the on-screen keyboard is open (keeps the mobile toolbar clear).
 - Include notes from subfolders (current folder first, then subfolders by name).
 - Loop inside the folder.
 - Remember scroll position per note.

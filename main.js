@@ -141,19 +141,26 @@ function positionLabel(list, path) {
 	if (index < 0) return '';
 	return index + 1 + '/' + list.length;
 }
+
+/**
+ * 键盘是否弹出：视觉视口相对布局视口明显缩小就算弹出。
+ * 取不到数值时按「没弹」处理，宁可多显示也不要莫名隐藏。
+ */
+function keyboardOpen(visualHeight, layoutHeight) {
+	if (!visualHeight || !layoutHeight) return false;
+	return visualHeight / layoutHeight < 0.8;
+}
 // ---------------- core:end ----------------
 
 const DEFAULT_SETTINGS = {
 	showOnDesktop: true,
 	showOnMobile: true,
-	hideWhenEditing: true,
+	hideWhenKeyboard: true,
 	includeSubfolders: false,
 	loop: false,
 	rememberScroll: true,
 	fallbackSortOrder: 'alphabetical',
 };
-
-const MODES = { SOURCE: 'source', PREVIEW: 'preview' };
 
 class FolderSheetModal extends Modal {
 	constructor(plugin, file) {
@@ -281,11 +288,11 @@ class FolderFlowSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName('移动端编辑时隐藏薄条')
-			.setDesc('在编辑模式（键盘弹出）下隐藏，避免挡住移动工具栏。')
+			.setName('手机键盘弹出时隐藏薄条')
+			.setDesc('只在键盘弹出（可能压住移动工具栏）时隐藏；编辑模式下键盘收起时仍然显示。')
 			.addToggle((toggle) =>
-				toggle.setValue(this.plugin.settings.hideWhenEditing).onChange(async (value) => {
-					this.plugin.settings.hideWhenEditing = value;
+				toggle.setValue(this.plugin.settings.hideWhenKeyboard).onChange(async (value) => {
+					this.plugin.settings.hideWhenKeyboard = value;
 					await this.plugin.saveSettings();
 					this.plugin.updateBar();
 				}),
@@ -402,6 +409,10 @@ module.exports = class FolderFlowPlugin extends Plugin {
 		this.registerEvent(this.app.workspace.on('file-open', () => this.updateBar()));
 		this.registerEvent(this.app.workspace.on('active-leaf-change', () => this.updateBar()));
 		this.registerEvent(this.app.workspace.on('layout-change', () => this.updateBar()));
+		this.registerDomEvent(window, 'resize', () => this.updateBar());
+		if (window.visualViewport) {
+			this.registerDomEvent(window.visualViewport, 'resize', () => this.updateBar());
+		}
 		this.app.workspace.onLayoutReady(() => {
 			this.buildBar();
 			this.updateBar();
@@ -421,6 +432,10 @@ module.exports = class FolderFlowPlugin extends Plugin {
 	async loadSettings() {
 		const loaded = (await this.loadData()) || {};
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, loaded.settings || {});
+		const legacy = loaded.settings ? loaded.settings.hideWhenEditing : undefined;
+		if (typeof legacy === 'boolean' && loaded.settings.hideWhenKeyboard === undefined) {
+			this.settings.hideWhenKeyboard = legacy;
+		}
 		this.scrollMap = Object.assign({}, loaded.scrollMap || {});
 	}
 
@@ -508,6 +523,13 @@ module.exports = class FolderFlowPlugin extends Plugin {
 		});
 	}
 
+	/* 键盘是否弹出：iOS/Android 的 visualViewport 会明显缩小；不缩小就是没弹。 */
+	isKeyboardOpen() {
+		const viewport = window.visualViewport;
+		if (!viewport) return false;
+		return keyboardOpen(viewport.height, window.innerHeight);
+	}
+
 	updateBar() {
 		if (!this.barEl) return;
 		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
@@ -517,8 +539,8 @@ module.exports = class FolderFlowPlugin extends Plugin {
 		if (visible) {
 			visible = Platform.isMobile ? this.settings.showOnMobile : this.settings.showOnDesktop;
 		}
-		if (visible && Platform.isMobile && this.settings.hideWhenEditing && view) {
-			visible = view.getMode() !== MODES.SOURCE;
+		if (visible && Platform.isMobile && this.settings.hideWhenKeyboard && this.isKeyboardOpen()) {
+			visible = false;
 		}
 
 		if (!visible) {
