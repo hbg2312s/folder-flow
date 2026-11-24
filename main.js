@@ -205,6 +205,7 @@ const DEFAULT_SETTINGS = {
 	resumeLastNote: true,
 	autoMarkRead: false,
 	queueMode: false,
+	collapsed: false,
 };
 
 class FolderSheetModal extends Modal {
@@ -470,6 +471,7 @@ module.exports = class FolderFlowPlugin extends Plugin {
 		this.queue = this.queue || [];
 		this.lastPath = this.lastPath || '';
 		this.barEl = null;
+		this.dotEl = null;
 		this.sheet = null;
 		this.saveTimer = null;
 
@@ -498,6 +500,7 @@ module.exports = class FolderFlowPlugin extends Plugin {
 		this.addCommand({ id: 'queue-remove', name: '把当前笔记移出书单', checkCallback: needsFile(() => this.removeFromQueue(this.app.workspace.getActiveFile())) });
 		this.addCommand({ id: 'queue-clear', name: '清空书单', callback: () => this.clearQueue() });
 		this.addCommand({ id: 'queue-toggle', name: '切换书单模式 / 文件夹模式', callback: () => this.toggleQueueMode() });
+		this.addCommand({ id: 'toggle-collapse', name: '展开 / 收起阅读薄条', callback: () => this.setCollapsed(!this.settings.collapsed) });
 
 		this.registerEvent(this.app.workspace.on('file-open', () => this.updateBar()));
 		this.registerEvent(this.app.workspace.on('active-leaf-change', () => this.updateBar()));
@@ -518,6 +521,10 @@ module.exports = class FolderFlowPlugin extends Plugin {
 		if (this.barEl) {
 			this.barEl.remove();
 			this.barEl = null;
+		}
+		if (this.dotEl) {
+			this.dotEl.remove();
+			this.dotEl = null;
 		}
 		this.sheet = null;
 		if (this.saveTimer) window.clearTimeout(this.saveTimer);
@@ -620,8 +627,76 @@ module.exports = class FolderFlowPlugin extends Plugin {
 		next.setAttr('aria-label', '下一篇');
 		next.addEventListener('click', () => this.go(1));
 
+		const collapse = bar.createEl('button', { cls: 'ff-nav ff-collapse', text: '▾' });
+		collapse.setAttr('aria-label', '收起成圆点');
+		collapse.addEventListener('click', () => this.setCollapsed(true));
+
 		this.attachSwipe(bar);
 		this.barEl = bar;
+		this.dotEl = this.buildDot();
+	}
+
+	buildDot() {
+		const dot = document.body.createEl('button', { cls: 'folder-flow-dot' });
+		dot.setAttr('aria-label', '展开阅读薄条');
+		dot.createSpan({ cls: 'ff-dot-text', text: '' });
+
+		let startX = 0;
+		let startY = 0;
+		let tracking = false;
+		let swiped = false;
+		let longPressed = false;
+		let timer = null;
+
+		const clearTimer = () => {
+			if (timer) {
+				window.clearTimeout(timer);
+				timer = null;
+			}
+		};
+
+		dot.addEventListener('pointerdown', (event) => {
+			tracking = true;
+			swiped = false;
+			longPressed = false;
+			startX = event.clientX;
+			startY = event.clientY;
+			clearTimer();
+			timer = window.setTimeout(() => {
+				timer = null;
+				if (!tracking || swiped) return;
+				longPressed = true;
+				this.openSheet();
+			}, 500);
+		});
+
+		dot.addEventListener('pointerup', (event) => {
+			clearTimer();
+			if (!tracking) return;
+			tracking = false;
+			if (longPressed) return;
+			const dx = event.clientX - startX;
+			const dy = event.clientY - startY;
+			if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+				swiped = true;
+				this.go(dx < 0 ? 1 : -1);
+				return;
+			}
+			this.setCollapsed(false);
+		});
+
+		dot.addEventListener('pointercancel', () => {
+			clearTimer();
+			tracking = false;
+		});
+
+		return dot;
+	}
+
+	setCollapsed(value) {
+		this.settings.collapsed = !!value;
+		void this.saveSettings();
+		this.updateBar();
 	}
 
 	attachSwipe(bar) {
@@ -640,6 +715,10 @@ module.exports = class FolderFlowPlugin extends Plugin {
 			tracking = false;
 			const dx = event.clientX - startX;
 			const dy = event.clientY - startY;
+			if (dy > 28 && Math.abs(dy) > Math.abs(dx) * 1.5) {
+				this.setCollapsed(true);
+				return;
+			}
 			if (Math.abs(dx) > 36 && Math.abs(dx) > Math.abs(dy) * 1.5) {
 				this.go(dx < 0 ? 1 : -1);
 			}
@@ -670,13 +749,31 @@ module.exports = class FolderFlowPlugin extends Plugin {
 			visible = false;
 		}
 
+		const dot = this.dotEl;
 		if (!visible) {
 			this.barEl.removeClass('is-visible');
+			if (dot) dot.removeClass('is-visible');
 			return;
 		}
 
 		const list = this.listFor(file);
 		const pos = positionLabel(list, file.path);
+		const read = !!this.readMap[file.path];
+
+		if (this.settings.collapsed) {
+			this.barEl.removeClass('is-visible');
+			if (dot) {
+				const textEl = dot.querySelector('.ff-dot-text');
+				if (textEl) textEl.setText(pos ? pos.split('/')[0] : '•');
+				dot.setAttr('title', file.basename + (pos ? ' · ' + pos : '') + ' · 点击展开');
+				dot.toggleClass('is-read', read);
+				dot.addClass('is-visible');
+			}
+			return;
+		}
+
+		if (dot) dot.removeClass('is-visible');
+
 		const queueRead = this.isQueueActive() && indexPath(this.queueFiles(), file.path) >= 0;
 
 		const badgeEl = this.barEl.querySelector('.ff-badge');
@@ -690,7 +787,7 @@ module.exports = class FolderFlowPlugin extends Plugin {
 		if (posEl) posEl.setText(pos);
 
 		this.barEl.toggleClass('is-single', list.length <= 1);
-		this.barEl.toggleClass('is-read', !!this.readMap[file.path]);
+		this.barEl.toggleClass('is-read', read);
 		this.barEl.addClass('is-visible');
 	}
 

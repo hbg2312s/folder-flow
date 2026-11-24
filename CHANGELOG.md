@@ -1,3 +1,10 @@
+# 0.3.0
+
+- The bar can be collapsed into a small dot at the bottom right. Tap the dot to expand it again, swipe the dot left or right to change note, long press it to open the folder sheet. Swiping down on the bar, or the new `▾` button, collapses it.
+- The collapsed dot shows the current position number, and greys out when the note is marked read.
+- New command "展开 / 收起阅读薄条" so the state can be toggled from a hotkey or the mobile toolbar.
+- The collapsed state is remembered between sessions.
+
 # 0.2.0
 
 - **Resume**: remembers the last note you read and its scroll offset; on startup, if the workspace is empty, it reopens that note and restores the position. New command "回到上次阅读的位置".

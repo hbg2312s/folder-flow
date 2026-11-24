@@ -102,6 +102,49 @@
 	color: var(--text-faint);
 }
 
+.folder-flow-bar .ff-collapse {
+	flex: 0 0 26px;
+	font-size: 11px;
+	color: var(--text-faint);
+}
+
+/* ---------- 收起后的圆点 ---------- */
+
+.folder-flow-dot {
+	position: fixed;
+	right: 16px;
+	bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+	width: 34px;
+	height: 34px;
+	padding: 0;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+	color: var(--text-muted);
+	font-size: 11px;
+	font-variant-numeric: tabular-nums;
+	z-index: 32;
+	opacity: 0;
+	pointer-events: none;
+	transform: scale(0.9);
+	transition: opacity 120ms ease, transform 120ms ease;
+	touch-action: pan-y;
+}
+
+.folder-flow-dot.is-visible {
+	opacity: 1;
+	pointer-events: auto;
+	transform: scale(1);
+}
+
+.folder-flow-dot.is-read {
+	color: var(--text-faint);
+}
+
 /* ---------- 底部面板 ---------- */
 
 .modal-container.ff-sheet-container {
