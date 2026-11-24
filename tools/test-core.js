@@ -18,7 +18,7 @@ const sandbox = { module: { exports: {} }, console };
 vm.createContext(sandbox);
 vm.runInContext(
 	coreSource +
-		'\nmodule.exports = { normOrder, cmpName, sorterFor, sortFiles, collectNotes, indexPath, step, positionLabel, keyboardOpen, ORDER_KEYS };',
+		'\nmodule.exports = { normOrder, cmpName, sorterFor, sortFiles, collectNotes, indexPath, step, positionLabel, keyboardOpen, resolveQueue, nextUnread, ORDER_KEYS };',
 	sandbox,
 );
 const core = sandbox.module.exports;
@@ -138,6 +138,36 @@ check('键盘收起（轻微抖动）', core.keyboardOpen(950, 1000), false);
 check('键盘弹出', core.keyboardOpen(560, 1000), true);
 check('无 visualViewport', core.keyboardOpen(undefined, 1000), false);
 check('高度为 0 不误判', core.keyboardOpen(0, 1000), false);
+
+// 11. 书单还原：丢弃不存在的条目与文件夹，重复路径只留一次
+const files = {
+	'F/a.md': file('a.md'),
+	'F/b.md': file('b.md'),
+	'F/c.md': file('c.md'),
+	'F/d.md': file('d.md'),
+	'F/folder': folder('folder', []),
+};
+const lookup = (p) => files[p] || null;
+const queue = core.resolveQueue(
+	['F/a.md', 'F/missing.md', 'F/b.md', 'F/a.md', 'F/folder'],
+	lookup,
+);
+check('书单还原', queue.map((f) => f.basename), ['a', 'b']);
+check('书单空输入', core.resolveQueue(undefined, lookup), []);
+
+// 12. 找未读：跳过已读、按方向、可循环
+const seq = ['F/a.md', 'F/b.md', 'F/c.md', 'F/d.md'].map((p) => files[p]);
+const reads = { 'F/a.md': true, 'F/b.md': true, 'F/c.md': true };
+check('下一篇未读（跳到 d）', core.nextUnread(seq, 'F/a.md', reads, 1, false).target.basename, 'd');
+check('上一封未读（从 d 往回，a 已读则无）', core.nextUnread(seq, 'F/d.md', reads, -1, false).target, null);
+check('全部已读', core.nextUnread(seq, 'F/a.md', { 'F/a.md': 1, 'F/b.md': 1, 'F/c.md': 1, 'F/d.md': 1 }, 1, true).target, null);
+check(
+	'循环找到前面的未读',
+	core.nextUnread(seq, 'F/c.md', { 'F/b.md': 1, 'F/c.md': 1, 'F/d.md': 1 }, 1, true).target.basename,
+	'a',
+);
+check('当前不在列表时从头找', core.nextUnread(seq, 'F/other.md', { 'F/a.md': 1 }, 1, false).target.basename, 'b');
+check('空列表不炸', core.nextUnread([], 'F/a.md', {}, 1, false).target, null);
 
 console.log('通过 ' + pass + ' 项');
 if (failures.length) {
