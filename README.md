@@ -8,6 +8,7 @@ Built for mobile first, but works on desktop.
 
 - **Bottom bar**: `‹ Note name 3/12 ›` above the bottom edge. Tap the arrows or swipe the bar to move through the folder.
 - **Collapse**: swipe down on the bar (or tap `▾`) and it becomes a small dot at the bottom right. Tap the dot to expand, swipe it left or right to change note, long press it to open the sheet. The dot shows the position number.
+- **Configurable gestures**: left, right, up and down swipes on the bar (and on the collapsed dot) each run a command you pick in settings. Any command works, including the ones other plugins register. Defaults: left/right change note, down collapses the bar.
 - **Folder sheet**: tap the note name to open a bottom sheet with every note in the current folder, the current one highlighted and scrolled into view. Optional subfolder notes, an unread-only filter and a filter box.
 - **Row menu**: tap and hold a row (right click on desktop) to open it in a new tab, mark it read, add it to the reading queue, copy its path or link, rename it, delete it, or create a new note in that folder.
 - **Scroll memory**: every note remembers its own scroll position, so going back to the previous note puts you where you left off.

@@ -1,7 +1,7 @@
 {
   "id": "folder-flow",
   "name": "Folder Flow",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "minAppVersion": "1.13.0",
   "description": "Read a folder like a book: bottom bar pagination, resume where you left off, read marks, and a reading queue.",
   "author": "PZQ",

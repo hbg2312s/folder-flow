@@ -1,3 +1,11 @@
+# 0.4.0
+
+- All four swipe directions on the bar and on the collapsed dot can be bound to any command, including commands registered by other plugins. Configure them in settings under "手势".
+- Defaults: left = previous note, right = next note, down = collapse the bar, up = none.
+- The down-swipe no longer hard-codes collapsing: it runs whatever command is bound to it (the `▾` button always collapses).
+- Adds the `收起阅读薄条` command, so the down-swipe default (and any other entry point) can collapse the bar.
+- Swipe detection is shared between the bar and the dot and now respects a proper axis rule for diagonal swipes.
+
 # 0.3.0
 
 - The bar can be collapsed into a small dot at the bottom right. Tap the dot to expand it again, swipe the dot left or right to change note, long press it to open the folder sheet. Swiping down on the bar, or the new `▾` button, collapses it.

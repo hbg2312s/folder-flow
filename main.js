@@ -192,6 +192,16 @@ function nextUnread(list, path, readMap, direction, loop) {
 	}
 	return { target: null, scanned: total };
 }
+/**
+ * 把一次滑动转成方向；不够长或两个方向都不到阈值时返回 null。
+ * 斜着滑时以位移更大的轴为准。
+ */
+function swipeDirection(dx, dy, threshold) {
+	const limit = threshold || 30;
+	if (Math.abs(dx) < limit && Math.abs(dy) < limit) return null;
+	if (Math.abs(dx) >= Math.abs(dy)) return dx < 0 ? 'left' : 'right';
+	return dy < 0 ? 'up' : 'down';
+}
 // ---------------- core:end ----------------
 
 const DEFAULT_SETTINGS = {
@@ -206,6 +216,10 @@ const DEFAULT_SETTINGS = {
 	autoMarkRead: false,
 	queueMode: false,
 	collapsed: false,
+	swipeLeft: 'folder-flow:prev',
+	swipeRight: 'folder-flow:next',
+	swipeUp: '',
+	swipeDown: 'folder-flow:collapse',
 };
 
 class FolderSheetModal extends Modal {
@@ -459,6 +473,30 @@ class FolderFlowSettingTab extends PluginSettingTab {
 						this.plugin.updateBar();
 					});
 			});
+
+		containerEl.createEl('h3', { text: '手势（薄条 / 圆点）' });
+		const choices = this.plugin.listCommandChoices();
+		const addSwipe = (name, desc, key) => {
+			new Setting(containerEl)
+				.setName(name)
+				.setDesc(desc)
+				.addDropdown((dropdown) => {
+					dropdown.addOption('', '（无）');
+					for (const command of choices) dropdown.addOption(command.id, command.name);
+					const current = this.plugin.settings[key];
+					if (current && !choices.some((command) => command.id === current)) {
+						dropdown.addOption(current, current + '（已失效）');
+					}
+					dropdown.setValue(current || '').onChange(async (value) => {
+						this.plugin.settings[key] = value;
+						await this.plugin.saveSettings();
+					});
+				});
+		};
+		addSwipe('左滑', '默认：上一篇', 'swipeLeft');
+		addSwipe('右滑', '默认：下一篇', 'swipeRight');
+		addSwipe('上滑', '默认：无', 'swipeUp');
+		addSwipe('下滑', '默认：收起薄条', 'swipeDown');
 	}
 }
 
@@ -501,6 +539,7 @@ module.exports = class FolderFlowPlugin extends Plugin {
 		this.addCommand({ id: 'queue-clear', name: '清空书单', callback: () => this.clearQueue() });
 		this.addCommand({ id: 'queue-toggle', name: '切换书单模式 / 文件夹模式', callback: () => this.toggleQueueMode() });
 		this.addCommand({ id: 'toggle-collapse', name: '展开 / 收起阅读薄条', callback: () => this.setCollapsed(!this.settings.collapsed) });
+		this.addCommand({ id: 'collapse', name: '收起阅读薄条', callback: () => this.setCollapsed(true) });
 
 		this.registerEvent(this.app.workspace.on('file-open', () => this.updateBar()));
 		this.registerEvent(this.app.workspace.on('active-leaf-change', () => this.updateBar()));
@@ -675,11 +714,14 @@ module.exports = class FolderFlowPlugin extends Plugin {
 			if (!tracking) return;
 			tracking = false;
 			if (longPressed) return;
-			const dx = event.clientX - startX;
-			const dy = event.clientY - startY;
-			if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+			const direction = swipeDirection(
+				event.clientX - startX,
+				event.clientY - startY,
+				30,
+			);
+			if (direction) {
 				swiped = true;
-				this.go(dx < 0 ? 1 : -1);
+				this.runSwipe(direction);
 				return;
 			}
 			this.setCollapsed(false);
@@ -713,20 +755,48 @@ module.exports = class FolderFlowPlugin extends Plugin {
 		bar.addEventListener('pointerup', (event) => {
 			if (!tracking) return;
 			tracking = false;
-			const dx = event.clientX - startX;
-			const dy = event.clientY - startY;
-			if (dy > 28 && Math.abs(dy) > Math.abs(dx) * 1.5) {
-				this.setCollapsed(true);
-				return;
-			}
-			if (Math.abs(dx) > 36 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-				this.go(dx < 0 ? 1 : -1);
-			}
+			const direction = swipeDirection(event.clientX - startX, event.clientY - startY, 30);
+			if (direction) this.runSwipe(direction);
 		});
 
 		bar.addEventListener('pointercancel', () => {
 			tracking = false;
 		});
+	}
+
+	/** 手势绑定的命令 id；空串表示这个方向不做事。 */
+	swipeCommand(direction) {
+		if (direction === 'left') return this.settings.swipeLeft;
+		if (direction === 'right') return this.settings.swipeRight;
+		if (direction === 'up') return this.settings.swipeUp;
+		return this.settings.swipeDown;
+	}
+
+	runSwipe(direction) {
+		const commandId = this.swipeCommand(direction);
+		if (!commandId) return;
+		this.runCommand(commandId);
+	}
+
+	runCommand(commandId) {
+		if (!commandId) return;
+		const commands = this.app.commands;
+		if (!commands || typeof commands.executeCommandById !== 'function') return;
+		try {
+			commands.executeCommandById(commandId);
+		} catch (error) {
+			new Notice('命令执行失败：' + commandId);
+		}
+	}
+
+	/** 设置界面用：列出所有可用命令（含其它插件注册的）。 */
+	listCommandChoices() {
+		const commands = this.app.commands;
+		if (!commands || typeof commands.listCommands !== 'function') return [];
+		return commands
+			.listCommands()
+			.map((command) => ({ id: command.id, name: command.name }))
+			.sort((a, b) => a.name.localeCompare(b.name));
 	}
 
 	/* 键盘是否弹出：iOS/Android 的 visualViewport 会明显缩小；不缩小就是没弹。 */

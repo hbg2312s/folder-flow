@@ -18,7 +18,7 @@ const sandbox = { module: { exports: {} }, console };
 vm.createContext(sandbox);
 vm.runInContext(
 	coreSource +
-		'\nmodule.exports = { normOrder, cmpName, sorterFor, sortFiles, collectNotes, indexPath, step, positionLabel, keyboardOpen, resolveQueue, nextUnread, ORDER_KEYS };',
+		'\nmodule.exports = { normOrder, cmpName, sorterFor, sortFiles, collectNotes, indexPath, step, positionLabel, keyboardOpen, resolveQueue, nextUnread, swipeDirection, ORDER_KEYS };',
 	sandbox,
 );
 const core = sandbox.module.exports;
@@ -168,6 +168,16 @@ check(
 );
 check('当前不在列表时从头找', core.nextUnread(seq, 'F/other.md', { 'F/a.md': 1 }, 1, false).target.basename, 'b');
 check('空列表不炸', core.nextUnread([], 'F/a.md', {}, 1, false).target, null);
+
+// 13. 手势方向：阈值、斜滑、短滑
+check('右滑', core.swipeDirection(60, 8, 30), 'right');
+check('左滑', core.swipeDirection(-60, 8, 30), 'left');
+check('上滑', core.swipeDirection(6, -60, 30), 'up');
+check('下滑', core.swipeDirection(6, 60, 30), 'down');
+check('斜滑看主轴（横向）', core.swipeDirection(40, 34, 30), 'right');
+check('斜滑看主轴（纵向）', core.swipeDirection(20, -45, 30), 'up');
+check('短滑不算手势', core.swipeDirection(12, 12, 30), null);
+check('刚好到阈值', core.swipeDirection(30, 0, 30), 'right');
 
 console.log('通过 ' + pass + ' 项');
 if (failures.length) {
